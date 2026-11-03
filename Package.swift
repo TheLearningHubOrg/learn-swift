@@ -1,27 +1,42 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
-    name: "LearnSwift",
+    name: "TodoService",
     platforms: [
-        .macOS(.v13)
+        // Hummingbird 2 needs macOS 14 when you build on a Mac. Linux has no minimum.
+        .macOS(.v14)
     ],
     products: [
-        .executable(name: "LearnSwift", targets: ["LearnSwift"]),
-        .library(name: "LearnSwiftCore", targets: ["LearnSwiftCore"])
+        .executable(name: "todo-server", targets: ["TodoServer"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0")
     ],
     targets: [
+        // Pure Swift domain code: no Foundation, no web framework.
+        .target(name: "TodoCore"),
+        // HTTP routes. Depends on the domain and on Hummingbird.
         .target(
-            name: "LearnSwiftCore",
-            dependencies: []
+            name: "TodoAPI",
+            dependencies: [
+                "TodoCore",
+                .product(name: "Hummingbird", package: "hummingbird"),
+            ]
         ),
+        // The executable: reads the environment and starts the server.
         .executableTarget(
-            name: "LearnSwift",
-            dependencies: ["LearnSwiftCore"]
+            name: "TodoServer",
+            dependencies: ["TodoAPI", "TodoCore"]
         ),
+        .testTarget(name: "TodoCoreTests", dependencies: ["TodoCore"]),
         .testTarget(
-            name: "LearnSwiftTests",
-            dependencies: ["LearnSwiftCore"]
-        )
+            name: "TodoAPITests",
+            dependencies: [
+                "TodoAPI",
+                "TodoCore",
+                .product(name: "HummingbirdTesting", package: "hummingbird"),
+            ]
+        ),
     ]
 )
